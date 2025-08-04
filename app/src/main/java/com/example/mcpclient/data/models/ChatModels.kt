@@ -8,8 +8,21 @@ data class ChatMessage(
     val id: String = "",
     val llm_response: String = "",
     val query_user: String = "",
-    val timestamps: Long = 0L
-)
+    val timestamps: Long = 0L,
+    val llm_thinking: String = "", // AI thinking process
+    // UI-friendly properties
+    val isPseudo: Boolean = false // For animation purposes
+) {
+    // No-argument constructor for Firebase
+    constructor() : this("", "", "", 0L, "", false)
+    
+    // Helper properties for UI
+    val isUser: Boolean get() = query_user.isNotEmpty()
+    val content: String get() = if (isUser) query_user else llm_response
+    val timestamp: Long get() = timestamps
+    val hasThinking: Boolean get() = llm_thinking.isNotEmpty()
+    val isThinkingOnly: Boolean get() = llm_thinking.isNotEmpty() && llm_response.isEmpty()
+}
 
 data class ChatSession(
     val sessionId: String = "",

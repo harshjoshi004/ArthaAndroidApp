@@ -25,7 +25,18 @@ class McpViewModel(private val repository: McpRepository) : ViewModel() {
     var userChats by mutableStateOf<UserChats?>(null)
         private set
 
-    var selectedChatSession by mutableStateOf<ChatSession?>(null)
+var selectedChatSession by mutableStateOf<ChatSession?>(null)
+        private set
+    
+    var currentSessionId by mutableStateOf<String?>(null)
+    
+    var isWaitingForResponse by mutableStateOf(false)
+        private set
+    
+    var isNewChat by mutableStateOf(false)
+        private set
+    
+    var responseLoadingMessage by mutableStateOf<String?>(null)
         private set
 
     companion object {
@@ -52,14 +63,52 @@ class McpViewModel(private val repository: McpRepository) : ViewModel() {
     fun getUserChats(userId: String) {
         val userRef = database.getReference("users").child(userId)
         userRef.get().addOnSuccessListener { dataSnapshot ->
-            if (dataSnapshot.exists()) {
-                val userData = dataSnapshot.getValue(UserChats::class.java)
-                userChats = userData ?: UserChats(userId = userId, chats = emptyMap())
-                Log.d(TAG, "User chats loaded for userId: $userId")
-            } else {
-                // User doesn't exist in Firebase, create empty data
-                userChats = UserChats(userId = userId, chats = emptyMap())
-                Log.d(TAG, "User $userId doesn't exist in Firebase, created empty chats")
+            try {
+                if (dataSnapshot.exists()) {
+                    // Try to get as UserChats first
+                    val userData = dataSnapshot.getValue(UserChats::class.java)
+                    if (userData != null) {
+                        userChats = userData
+                        Log.d(TAG, "User chats loaded for userId: $userId")
+                    } else {
+                        // If direct deserialization fails, try manual parsing
+                        val chatsMap = mutableMapOf<String, Map<String, ChatMessage>>()
+                        val chatsChild = dataSnapshot.child("chats")
+                        
+                        for (sessionChild in chatsChild.children) {
+                            val sessionId = sessionChild.key ?: continue
+                            val messagesMap = mutableMapOf<String, ChatMessage>()
+                            
+                            for (messageChild in sessionChild.children) {
+                                val messageId = messageChild.key ?: continue
+                                try {
+                                    val chatMessage = messageChild.getValue(ChatMessage::class.java)
+                                    if (chatMessage != null) {
+                                        messagesMap[messageId] = chatMessage.copy(id = messageId)
+                                    }
+                                } catch (e: Exception) {
+                                    Log.w(TAG, "Failed to parse message $messageId in session $sessionId", e)
+                                }
+                            }
+                            
+                            if (messagesMap.isNotEmpty()) {
+                                chatsMap[sessionId] = messagesMap
+                            }
+                        }
+                        
+                        val financialSummary = dataSnapshot.child("financial_summary").getValue(String::class.java) ?: ""
+                        userChats = UserChats(userId = userId, chats = chatsMap, financial_summary = financialSummary)
+                        Log.d(TAG, "User chats manually parsed for userId: $userId")
+                    }
+                } else {
+                    // User doesn't exist in Firebase, create empty data
+                    userChats = UserChats(userId = userId, chats = emptyMap())
+                    Log.d(TAG, "User $userId doesn't exist in Firebase, created empty chats")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to parse user chats for $userId", e)
+                userChats = UserChats(userId = userId, chats = emptyMap()) // Fallback to empty
+                errorMessage = "Failed to load user chats"
             }
         }.addOnFailureListener {
             Log.e(TAG, "Failed to load user chats", it)
@@ -71,10 +120,66 @@ class McpViewModel(private val repository: McpRepository) : ViewModel() {
     fun getChatMessages(userId: String, sessionId: String) {
         val sessionRef = database.getReference("users").child(userId).child("chats").child(sessionId)
         sessionRef.get().addOnSuccessListener { dataSnapshot ->
-            val messagesMap = dataSnapshot.getValue(object : GenericTypeIndicator<Map<String, ChatMessage>>() {})
-            val session = ChatSession(sessionId = sessionId, messages = messagesMap ?: emptyMap())
-            selectedChatSession = session
-            Log.d(TAG, "Chat messages loaded for session: $sessionId")
+            try {
+                val messagesMap = mutableMapOf<String, ChatMessage>()
+                
+                // Safely parse each message from Firebase
+                for (child in dataSnapshot.children) {
+                    val messageId = child.key ?: continue
+                    
+                    try {
+                        // Try to get as ChatMessage first
+                        val chatMessage = child.getValue(ChatMessage::class.java)
+                        if (chatMessage != null) {
+                            messagesMap[messageId] = chatMessage.copy(id = messageId)
+                        } else {
+                            // If that fails, try to parse manually
+                            val messageData = child.value
+                            if (messageData is Map<*, *>) {
+                                val llmResponse = (messageData["llm_response"] as? String) ?: ""
+                                val queryUser = (messageData["query_user"] as? String) ?: ""
+                                val timestamps = when (val ts = messageData["timestamps"]) {
+                                    is Number -> ts.toLong()
+                                    is String -> ts.toLongOrNull() ?: 0L
+                                    else -> 0L
+                                }
+                                val llmThinking = (messageData["llm_thinking"] as? String) ?: ""
+                                
+                                val parsedMessage = ChatMessage(
+                                    id = messageId,
+                                    llm_response = llmResponse,
+                                    query_user = queryUser,
+                                    timestamps = timestamps,
+                                    llm_thinking = llmThinking
+                                )
+                                messagesMap[messageId] = parsedMessage
+                            } else if (messageData is String) {
+                                // Handle case where Firebase contains just a string
+                                Log.w(TAG, "Found string data instead of ChatMessage object for message $messageId: $messageData")
+                                val defaultMessage = ChatMessage(
+                                    id = messageId,
+                                    llm_response = messageData,
+                                    query_user = "",
+                                    timestamps = System.currentTimeMillis(),
+                                    llm_thinking = ""
+                                )
+                                messagesMap[messageId] = defaultMessage
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed to parse message $messageId", e)
+                        // Continue with other messages
+                    }
+                }
+                
+                val session = ChatSession(sessionId = sessionId, messages = messagesMap)
+                selectedChatSession = session
+                Log.d(TAG, "Chat messages loaded for session: $sessionId with ${messagesMap.size} messages")
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to process chat messages for session $sessionId", e)
+                selectedChatSession = ChatSession(sessionId = sessionId, messages = emptyMap())
+                errorMessage = "Failed to load chat messages"
+            }
         }.addOnFailureListener {
             Log.e(TAG, "Failed to load chat messages", it)
             errorMessage = "Failed to load chat messages"
@@ -85,14 +190,52 @@ class McpViewModel(private val repository: McpRepository) : ViewModel() {
         val userRef = database.getReference("users").child(userId)
         userRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                if (snapshot.exists()) {
-                    val userData = snapshot.getValue(UserChats::class.java)
-                    userChats = userData ?: UserChats(userId = userId, chats = emptyMap())
-                    Log.d(TAG, "User chats updated for userId: $userId")
-                } else {
-                    // User doesn't exist, set empty data
+                try {
+                    if (snapshot.exists()) {
+                        // Try to get as UserChats first
+                        val userData = snapshot.getValue(UserChats::class.java)
+                        if (userData != null) {
+                            userChats = userData
+                            Log.d(TAG, "User chats updated for userId: $userId")
+                        } else {
+                            // If direct deserialization fails, try manual parsing
+                            val chatsMap = mutableMapOf<String, Map<String, ChatMessage>>()
+                            val chatsChild = snapshot.child("chats")
+                            
+                            for (sessionChild in chatsChild.children) {
+                                val sessionId = sessionChild.key ?: continue
+                                val messagesMap = mutableMapOf<String, ChatMessage>()
+                                
+                                for (messageChild in sessionChild.children) {
+                                    val messageId = messageChild.key ?: continue
+                                    try {
+                                        val chatMessage = messageChild.getValue(ChatMessage::class.java)
+                                        if (chatMessage != null) {
+                                            messagesMap[messageId] = chatMessage.copy(id = messageId)
+                                        }
+                                    } catch (e: Exception) {
+                                        Log.w(TAG, "Failed to parse message $messageId in session $sessionId", e)
+                                    }
+                                }
+                                
+                                if (messagesMap.isNotEmpty()) {
+                                    chatsMap[sessionId] = messagesMap
+                                }
+                            }
+                            
+                            val financialSummary = snapshot.child("financial_summary").getValue(String::class.java) ?: ""
+                            userChats = UserChats(userId = userId, chats = chatsMap, financial_summary = financialSummary)
+                            Log.d(TAG, "User chats manually parsed for userId: $userId")
+                        }
+                    } else {
+                        // User doesn't exist, set empty data
+                        userChats = UserChats(userId = userId, chats = emptyMap())
+                        Log.d(TAG, "User $userId doesn't exist, set empty chats")
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to observe user chats for $userId", e)
                     userChats = UserChats(userId = userId, chats = emptyMap())
-                    Log.d(TAG, "User $userId doesn't exist, set empty chats")
+                    errorMessage = "Failed to observe user chats"
                 }
             }
 
@@ -105,26 +248,181 @@ class McpViewModel(private val repository: McpRepository) : ViewModel() {
     }
 
     fun observeChatMessages(userId: String, sessionId: String) {
-        val sessionRef = database.getReference("users").child(userId).child("chats").child(sessionId)
-        sessionRef.addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val messagesMap = snapshot.getValue(object : GenericTypeIndicator<Map<String, ChatMessage>>() {})
-                val session = ChatSession(sessionId = sessionId, messages = messagesMap ?: emptyMap())
-                selectedChatSession = session
-                Log.d(TAG, "Chat messages updated for session: $sessionId")
-            }
+            val sessionRef = database.getReference("users").child(userId).child("chats").child(sessionId)
+            sessionRef.addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    try {
+                        val messagesMap = mutableMapOf<String, ChatMessage>()
+                        
+                        // Safely parse each message from Firebase
+                        for (child in snapshot.children) {
+                            val messageId = child.key ?: continue
+                            
+                            try {
+                                // Try to get as ChatMessage first
+                                val chatMessage = child.getValue(ChatMessage::class.java)
+                                if (chatMessage != null) {
+                                    messagesMap[messageId] = chatMessage.copy(id = messageId)
+                                } else {
+                                    // If that fails, try to parse manually
+                                    val messageData = child.value
+                                    if (messageData is Map<*, *>) {
+                                        val llmResponse = (messageData["llm_response"] as? String) ?: ""
+                                        val queryUser = (messageData["query_user"] as? String) ?: ""
+                                        val timestamps = when (val ts = messageData["timestamps"]) {
+                                            is Number -> ts.toLong()
+                                            is String -> ts.toLongOrNull() ?: 0L
+                                            else -> 0L
+                                        }
+                                        val llmThinking = (messageData["llm_thinking"] as? String) ?: ""
+                                        
+                                        val parsedMessage = ChatMessage(
+                                            id = messageId,
+                                            llm_response = llmResponse,
+                                            query_user = queryUser,
+                                            timestamps = timestamps,
+                                            llm_thinking = llmThinking
+                                        )
+                                        messagesMap[messageId] = parsedMessage
+                                    } else if (messageData is String) {
+                                        // Handle case where Firebase contains just a string
+                                        Log.w(TAG, "Found string data instead of ChatMessage object for message $messageId: $messageData")
+                                        // Skip this message or create a default ChatMessage
+                                        val defaultMessage = ChatMessage(
+                                            id = messageId,
+                                            llm_response = messageData,
+                                            query_user = "",
+                                            timestamps = System.currentTimeMillis(),
+                                            llm_thinking = ""
+                                        )
+                                        messagesMap[messageId] = defaultMessage
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Failed to parse message $messageId", e)
+                                // Continue with other messages
+                            }
+                        }
+                        
+                        val allMessages = messagesMap.values.sortedBy { it.timestamps }
+                        val session = ChatSession(sessionId = sessionId, messages = messagesMap)
+                        selectedChatSession = session
 
-            override fun onCancelled(error: DatabaseError) {
-                Log.e(TAG, "Failed to observe chat messages", error.toException())
-                errorMessage = "Failed to observe chat messages"
+                        // Handle thinking process
+                        if (allMessages.any { it.isThinkingOnly }) {
+                            Log.d(TAG, "Thinking phase detected")
+                            isLoading = true
+                            responseLoadingMessage = "Artha is thinking..."
+                        } else {
+                            isLoading = false
+                            responseLoadingMessage = null
+                        }
+
+                        Log.d(TAG, "Chat messages updated for session: $sessionId with ${messagesMap.size} messages")
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed to process chat messages for session $sessionId", e)
+                        // Set empty session to prevent crash
+                        selectedChatSession = ChatSession(sessionId = sessionId, messages = emptyMap())
+                        errorMessage = "Failed to load chat messages"
+                    }
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    Log.e(TAG, "Failed to observe chat messages", error.toException())
+                    errorMessage = "Failed to observe chat messages"
+                }
+            })
+        }
+
+    fun sendMessage(userId: String? = repository.getStoredPhoneNumber(), messageText: String) {
+        viewModelScope.launch {
+            try {
+                if (userId == null) {
+                    errorMessage = "User ID not available!"
+                    return@launch
+                }
+                
+                // Use current session ID if available, otherwise create new one ONLY when explicitly needed
+                val sessionId = currentSessionId ?: run {
+                    Log.w(TAG, "No current session ID available, creating new session")
+                    val newSessionId = repository.createNewChat().getOrThrow()
+                    currentSessionId = newSessionId
+                    
+                    // Create empty session in Firebase
+                    val chatRef = database.getReference("users").child(userId).child("chats").child(newSessionId)
+                    chatRef.setValue(emptyMap<String, ChatMessage>())
+                    
+                    // Initialize empty session locally
+                    selectedChatSession = ChatSession(sessionId = newSessionId, messages = emptyMap())
+                    
+                    newSessionId
+                }
+                
+                Log.d(TAG, "Sending message '$messageText' to session: $sessionId for user: $userId")
+                
+                // Set loading states
+                isWaitingForResponse = true
+                
+                // Send to Artha API
+                repository.sendChatMessage(messageText, sessionId, userId)
+                    .onSuccess { responseMessage ->
+                        Log.d(TAG, "Message sent successfully. Response: $responseMessage")
+                        
+                        // The response from the Artha API will update Firebase
+                        // We already observe Firebase changes in ChatDetailsScreen
+                        
+                    }
+                    .onFailure { exception ->
+                        Log.e(TAG, "Failed to send message", exception)
+                        errorMessage = "Failed to send message: ${exception.message}"
+                        isWaitingForResponse = false
+                    }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error in sendMessage", e)
+                errorMessage = "Failed to send message: ${e.message}"
+                isWaitingForResponse = false
             }
-        })
+        }
     }
-
-    fun sendMessage(userId: String, sessionId: String, message: String) {
-        // Mock implementation - will be replaced with FastAPI call later
-        Log.d(TAG, "Mock: Sending message '$message' to session: $sessionId for user: $userId")
-        // TODO: Send to FastAPI server which will write to Firebase
+    
+fun createNewChat(userId: String? = repository.getStoredPhoneNumber()) {
+        currentSessionId = null
+        isWaitingForResponse = false
+        isNewChat = true
+        viewModelScope.launch {
+            try {
+                if (userId == null) {
+                    errorMessage = "User ID not available!"
+                    return@launch
+                }
+                Log.d(TAG, "Creating new chat for user: $userId")
+                
+                repository.createNewChat()
+                    .onSuccess { sessionId ->
+                        Log.d(TAG, "New chat created with session ID: $sessionId")
+                        
+                        // Create the chat session in Firebase
+                        val chatRef = database.getReference("users").child(userId).child("chats").child(sessionId)
+                        chatRef.setValue(emptyMap<String, ChatMessage>())
+                        
+                        // Update local state
+                        val newSession = ChatSession(sessionId = sessionId, messages = emptyMap())
+                        selectedChatSession = newSession
+                        
+                        currentSessionId = sessionId
+                        
+                        // Refresh user chats to include the new session
+                        getUserChats(userId)
+                    }
+                    .onFailure { exception ->
+                        Log.e(TAG, "Failed to create new chat", exception)
+                        errorMessage = "Failed to create new chat: ${exception.message}"
+                    }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error in createNewChat", e)
+                errorMessage = "Failed to create new chat: ${e.message}"
+            }
+        }
     }
     
     var isLoggedIn by mutableStateOf(repository.isLoggedIn())

@@ -21,8 +21,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -169,7 +169,7 @@ fun DashboardScreen(
                     )
                 )
                 Icon(
-                    imageVector = Icons.Default.Send,
+                    imageVector = Icons.AutoMirrored.Filled.Send,
                     contentDescription = "Open AI Chat",
                     tint = Color.White,
                     modifier = Modifier.size(22.dp)
@@ -367,30 +367,30 @@ private fun NetWorthOverview(
                 // Use real data if available, otherwise use sample data
                 val netWorthData = viewModel.netWorthData?.let { data ->
                     buildList {
-                        // Mutual Funds
-                        data.mfSchemeAnalytics.schemeAnalytics.sumOf {
+                        // Mutual Funds - safely access with null checks
+                        data.mfSchemeAnalytics?.schemeAnalytics?.sumOf {
                             it.enrichedAnalytics.analytics.schemeDetails.currentValue.units.toDouble()
-                        }.takeIf { it > 0 }?.let { add("Mutual Funds" to it.toFloat()) }
+                        }?.takeIf { it > 0 }?.let { add("Mutual Funds" to it.toFloat()) }
 
                         // Stocks/Equity
-                        data.accountDetailsBulkResponse.accountDetailsMap.values
-                            .mapNotNull { it.equitySummary?.currentValue?.units?.toDouble() }
-                            .sum().takeIf { it > 0 }?.let { add("Stocks" to it.toFloat()) }
+                        data.accountDetailsBulkResponse?.accountDetailsMap?.values
+                            ?.mapNotNull { it.equitySummary?.currentValue?.units?.toDouble() }
+                            ?.sum()?.takeIf { it > 0 }?.let { add("Stocks" to it.toFloat()) }
 
                         // NPS
-                        data.accountDetailsBulkResponse.accountDetailsMap.values
-                            .mapNotNull { it.npsSummary?.currentValue?.units?.toDouble() }
-                            .sum().takeIf { it > 0 }?.let { add("NPS" to it.toFloat()) }
+                        data.accountDetailsBulkResponse?.accountDetailsMap?.values
+                            ?.mapNotNull { it.npsSummary?.currentValue?.units?.toDouble() }
+                            ?.sum()?.takeIf { it > 0 }?.let { add("NPS" to it.toFloat()) }
 
                         // EPF
-                        data.accountDetailsBulkResponse.accountDetailsMap.values
-                            .mapNotNull { it.epfSummary?.currentBalance?.units?.toDouble() }
-                            .sum().takeIf { it > 0 }?.let { add("EPF" to it.toFloat()) }
+                        data.accountDetailsBulkResponse?.accountDetailsMap?.values
+                            ?.mapNotNull { it.epfSummary?.currentBalance?.units?.toDouble() }
+                            ?.sum()?.takeIf { it > 0 }?.let { add("EPF" to it.toFloat()) }
 
                         // Savings/Deposits
-                        data.accountDetailsBulkResponse.accountDetailsMap.values
-                            .mapNotNull { it.depositSummary?.currentBalance?.units?.toDouble() }
-                            .sum().takeIf { it > 0 }?.let { add("Savings" to it.toFloat()) }
+                        data.accountDetailsBulkResponse?.accountDetailsMap?.values
+                            ?.mapNotNull { it.depositSummary?.currentBalance?.units?.toDouble() }
+                            ?.sum()?.takeIf { it > 0 }?.let { add("Savings" to it.toFloat()) }
                     }
                 } ?: listOf(
                     "Mutual Funds" to 5260000f,

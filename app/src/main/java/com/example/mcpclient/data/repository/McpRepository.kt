@@ -6,6 +6,7 @@ import android.util.Log
 import com.example.mcpclient.data.api.JsonRpcParams
 import com.example.mcpclient.data.api.JsonRpcRequest
 import com.example.mcpclient.data.api.McpApiService
+import com.example.mcpclient.data.api.ArthaApiService
 import com.example.mcpclient.data.models.*
 import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
@@ -14,6 +15,7 @@ import kotlinx.coroutines.withContext
 
 class McpRepository(
     private val apiService: McpApiService,
+    private val arthaApiService: ArthaApiService,
     private val context: Context
 ) {
     private val sharedPrefs: SharedPreferences =
@@ -470,6 +472,40 @@ class McpRepository(
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error fetching stock transactions", e)
+            Result.failure(e)
+        }
+    }
+
+    // Artha API chat methods
+    suspend fun sendChatMessage(message: String, sessionId: String, userId: String): Result<String> = withContext(Dispatchers.IO) {
+        try {
+            Log.d(TAG, "Sending chat message: $message")
+            val response = arthaApiService.sendMessage(userId, sessionId, message)
+            
+            response.fold(
+                onSuccess = { apiResponse ->
+                    Log.d(TAG, "Chat message sent successfully")
+                    Result.success(apiResponse.message)
+                },
+                onFailure = { error ->
+                    Log.e(TAG, "Failed to send chat message: ${error.message}")
+                    Result.failure(error)
+                }
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "Error sending chat message", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun createNewChat(): Result<String> = withContext(Dispatchers.IO) {
+        try {
+            Log.d(TAG, "Creating new chat")
+            val sessionId = arthaApiService.generateSessionId()
+            Log.d(TAG, "New chat created with session ID: $sessionId")
+            Result.success(sessionId)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error creating new chat", e)
             Result.failure(e)
         }
     }

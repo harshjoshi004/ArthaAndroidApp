@@ -97,8 +97,9 @@ fun ChatDetailsScreen(
     // Animation state
     var showAgentAnimation by remember { mutableStateOf(false) }
 
-    // Start observing chat messages in real-time
+    // Start observing chat messages in real-time and set current session
     LaunchedEffect(sessionId, userId) {
+        viewModel.currentSessionId = sessionId
         viewModel.observeChatMessages(userId, sessionId)
     }
 
@@ -153,7 +154,7 @@ fun ChatDetailsScreen(
                     showAgentAnimation = true
 
                     // Send the actual message
-                    viewModel.sendMessage(userId, sessionId, messageText.trim())
+                    viewModel.sendMessage(messageText = messageText.trim())
                     messageText = ""
                     keyboardController?.hide()
                 }
@@ -306,7 +307,11 @@ private fun ChatMessagesList(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        items(messages) { message ->
+        // Process messages to show user and AI messages separately
+        val processedMessages = messages.filter { !it.isPseudo }
+        val hasThinkingOnlyMessage = processedMessages.any { it.isThinkingOnly }
+        
+        items(processedMessages) { message ->
             AnimatedVisibility(
                 visible = true,
                 enter = slideInVertically(
@@ -318,20 +323,37 @@ private fun ChatMessagesList(
                 Column(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // User message
-                    UserMessageBubble(
-                        message = message.query_user,
-                        timestamp = message.timestamps
-                    )
-
-                    // AI response
-                    if (message.llm_response.isNotEmpty()) {
-                        AIMessageBubble(
-                            message = message.llm_response,
+                    // User message (only show if not empty)
+                    if (message.query_user.isNotEmpty()) {
+                        UserMessageBubble(
+                            message = message.query_user,
                             timestamp = message.timestamps
                         )
-                    } else {
-                        // Show typing indicator if AI hasn't responded yet
+                    }
+
+                    // Handle AI thinking and response
+                    if (message.llm_thinking.isNotEmpty() || message.llm_response.isNotEmpty()) {
+                        // Show thinking bubble if we have thinking data
+                        if (message.llm_thinking.isNotEmpty()) {
+                            ThinkingBubble(
+                                thinking = message.llm_thinking,
+                                timestamp = message.timestamps
+                            )
+                        }
+                        
+                        // Show AI response if available
+                        if (message.llm_response.isNotEmpty()) {
+                            AIMessageBubble(
+                                message = message.llm_response,
+                                timestamp = message.timestamps,
+                                thinking = message.llm_thinking
+                            )
+                        } else if (message.llm_thinking.isNotEmpty()) {
+                            // Show typing indicator if we have thinking but no response yet
+                            TypingIndicator()
+                        }
+                    } else if (message.query_user.isNotEmpty()) {
+                        // Show typing indicator for user messages without responses
                         TypingIndicator()
                     }
                 }
@@ -407,9 +429,64 @@ private fun UserMessageBubble(
 }
 
 @Composable
+private fun ThinkingBubble(
+    thinking: String,
+    timestamp: Long
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Start
+    ) {
+        Icon(
+            imageVector = Icons.Default.AccountCircle,
+            contentDescription = null,
+            tint = NeonGreen,
+            modifier = Modifier
+                .size(32.dp)
+                .padding(top = 4.dp)
+        )
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        Column(
+            horizontalAlignment = Alignment.Start,
+            modifier = Modifier.fillMaxWidth(0.9f)
+        ) {
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = DarkSurface
+                ),
+                shape = RoundedCornerShape(
+                    topStart = 4.dp,
+                    topEnd = 16.dp,
+                    bottomStart = 16.dp,
+                    bottomEnd = 16.dp
+                ),
+                modifier = Modifier.shadow(4.dp)
+            ) {
+                Text(
+                    text = "🧠 Thinking: $thinking",
+                    modifier = Modifier.padding(16.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextSecondary
+                )
+            }
+
+            Text(
+                text = formatTimestamp(timestamp),
+                style = MaterialTheme.typography.bodySmall,
+                color = TextSecondary,
+                modifier = Modifier.padding(top = 4.dp, start = 8.dp)
+            )
+        }
+    }
+}
+
+@Composable
 private fun AIMessageBubble(
     message: String,
-    timestamp: Long
+    timestamp: Long,
+    thinking: String = ""
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),

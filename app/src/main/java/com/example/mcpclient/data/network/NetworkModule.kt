@@ -2,6 +2,8 @@ package com.example.mcpclient.data.network
 
 import android.content.Context
 import com.example.mcpclient.data.api.McpApiService
+import com.example.mcpclient.data.api.ArthaApiService
+import com.example.mcpclient.data.api.ArthaApiServiceImpl
 import com.example.mcpclient.data.repository.McpRepository
 import com.google.gson.GsonBuilder
 import okhttp3.OkHttpClient
@@ -79,8 +81,12 @@ object NetworkModule {
     fun provideApiService(): McpApiService {
         return provideRetrofit().create(McpApiService::class.java)
     }
+    
+    fun provideArthaApiService(): ArthaApiService {
+        return ArthaApiServiceImpl()
+    }
 
     fun provideRepository(context: Context): McpRepository {
-        return McpRepository(provideApiService(), context)
+        return McpRepository(provideApiService(), provideArthaApiService(), context)
     }
 }

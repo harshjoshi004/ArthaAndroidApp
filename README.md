@@ -6,9 +6,10 @@
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue.svg?style=flat-square)](https://kotlinlang.org)
 [![Jetpack Compose](https://img.shields.io/badge/UI-Jetpack%20Compose-4285F4.svg?style=flat-square)](https://developer.android.com/jetpack/compose)
 [![Firebase](https://img.shields.io/badge/Backend-Firebase-orange.svg?style=flat-square)](https://firebase.google.com)
-[![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
 
 *A sophisticated Android application built with Jetpack Compose for multi-agent financial management and analysis*
+
+![App Screenshots](ARTHA.png)
 
 </div>
 
@@ -112,74 +113,12 @@ Create your own `google-services.json` file with your Firebase project details:
 }
 ```
 
-## 📱 Screenshots
-
-<div align="center">
-
-| Dashboard | Investments | Chat Interface |
-|:---------:|:-----------:|:--------------:|
-| ![Dashboard](screenshots/dashboard.png) | ![Investments](screenshots/investments.png) | ![Chat](screenshots/chat.png) |
-
-| Transactions | Net Worth | Authentication |
-|:------------:|:---------:|:--------------:|
-| ![Transactions](screenshots/transactions.png) | ![Net Worth](screenshots/networth.png) | ![Auth](screenshots/auth.png) |
-
-</div>
-
-## 🧪 Testing
-
-### Unit Tests
-```bash
-./gradlew testDebugUnitTest
-```
-
-### Instrumentation Tests
-```bash
-./gradlew connectedDebugAndroidTest
-```
-
-### Test Coverage
-```bash
-./gradlew jacocoTestReport
-```
-
 ## 🔧 Development
 
 ### Code Style
 This project follows the [Kotlin Coding Conventions](https://kotlinlang.org/docs/coding-conventions.html) and uses:
 - **ktlint** for code formatting
 - **detekt** for static code analysis
-
-### Gradle Tasks
-```bash
-# Clean build
-./gradlew clean
-
-# Debug build
-./gradlew assembleDebug
-
-# Release build
-./gradlew assembleRelease
-
-# Run tests
-./gradlew test
-
-# Generate lint report
-./gradlew lintDebug
-```
-
-## 🚦 API Integration
-
-### Endpoints Configuration
-The app supports multiple API endpoints for different financial services:
-
-```kotlin
-// Example API configuration
-object ApiConfig {
-    const val BASE_URL = "https://api.example.com/"
-    const val TIMEOUT = 30L
-}
-```
 
 ### Supported Services
 - 📈 **Stock Market Data**
@@ -205,45 +144,10 @@ object ApiConfig {
 - [ ] 🔄 Background Sync
 - [ ] 📱 Battery Optimization
 
-## 🤝 Contributing
-
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
-
-### Development Workflow
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-### Code Review Process
-- All code must pass CI checks
-- Minimum 2 approving reviews required
-- Follow the project's coding standards
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
 ## 👥 Authors & Contributors
 
-### Core Team
-- **[Harsh Joshi](https://github.com/harshjoshi004)** - *Project Lead & Main Developer*
-
-### Contributors
-We appreciate all contributors! See [CONTRIBUTORS.md](CONTRIBUTORS.md) for the full list.
-
-## 📞 Support & Contact
-
-### Get Help
-- 📧 **Email**: support@arthaapp.com
-- 💬 **Discord**: [Join our community](https://discord.gg/arthaapp)
-- 🐛 **Issues**: [GitHub Issues](https://github.com/harshjoshi004/ArthaAndroidApp/issues)
-- 📚 **Documentation**: [Wiki](https://github.com/harshjoshi004/ArthaAndroidApp/wiki)
-
-### Social Media
-- 🐦 **Twitter**: [@ArthaApp](https://twitter.com/arthaapp)
-- 💼 **LinkedIn**: [Artha Finance](https://linkedin.com/company/artha-finance)
+### Made By -
+- **[Harsh Joshi](https://github.com/harshjoshi004)** - *Android Developer*
 
 ## 🙏 Acknowledgments
 
@@ -252,20 +156,12 @@ Special thanks to:
 - **Firebase Team** for the robust backend services
 - **Retrofit Team** for excellent networking capabilities
 - **Open Source Community** for inspiration and contributions
-
-## 📊 Project Stats
-
-![GitHub stars](https://img.shields.io/github/stars/harshjoshi004/ArthaAndroidApp?style=social)
-![GitHub forks](https://img.shields.io/github/forks/harshjoshi004/ArthaAndroidApp?style=social)
-![GitHub issues](https://img.shields.io/github/issues/harshjoshi004/ArthaAndroidApp)
-![GitHub pull requests](https://img.shields.io/github/issues-pr/harshjoshi004/ArthaAndroidApp)
-
 ---
 
 <div align="center">
 
 **[⬆ Back to Top](#-artha-android-app---multi-agent-finance-client)**
 
-Made with ❤️ by the Artha Team
+Made with ❤️ by the Team Nirvana1
 
 </div>

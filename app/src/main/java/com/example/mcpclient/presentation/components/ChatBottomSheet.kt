@@ -20,10 +20,13 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -63,6 +66,7 @@ fun ChatBottomSheet(
                     DarkBackground
                 )
             ))
+            .padding(start = 8.dp)
             .fillMaxWidth()
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -83,30 +87,32 @@ fun ChatBottomSheet(
             )
             
             // New Chat Button
-            AnimatedCard(
-                modifier = Modifier.clickable {
+            OutlinedButton(
+                border = _root_ide_package_.androidx.compose.foundation.BorderStroke(
+                    2.dp,
+                    NeonGreen
+                ),
+                onClick = {
                     // Generate new session ID using the same logic as ViewModel
                     val timestamp = System.currentTimeMillis()
                     val random = (1..15).map { ('a'..'z').random() }.joinToString("")
                     val newSessionId = "session_${timestamp}_$random"
-                    
+
                     // Set this as the current session in ViewModel for new chats
                     viewModel.currentSessionId = newSessionId
-                    
+
                     // Navigate to the chat details screen
                     onChatClick(newSessionId)
-                },
-                glowColor = ElectricBlue
+                }
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Add,
                         contentDescription = "New Chat",
-                        tint = ElectricBlue,
+                        tint = NeonGreen,
                         modifier = Modifier.size(20.dp)
                     )
                     Text(
@@ -114,10 +120,45 @@ fun ChatBottomSheet(
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontWeight = FontWeight.Medium
                         ),
-                        color = TextPrimary
+                        color = NeonGreen
                     )
                 }
             }
+//            AnimatedCard(
+//                modifier = Modifier.clickable {
+//                    // Generate new session ID using the same logic as ViewModel
+//                    val timestamp = System.currentTimeMillis()
+//                    val random = (1..15).map { ('a'..'z').random() }.joinToString("")
+//                    val newSessionId = "session_${timestamp}_$random"
+//
+//                    // Set this as the current session in ViewModel for new chats
+//                    viewModel.currentSessionId = newSessionId
+//
+//                    // Navigate to the chat details screen
+//                    onChatClick(newSessionId)
+//                },
+//                glowColor = ElectricBlue
+//            ) {
+//                Row(
+//                    verticalAlignment = Alignment.CenterVertically,
+//                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+//                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+//                ) {
+//                    Icon(
+//                        imageVector = Icons.Default.Add,
+//                        contentDescription = "New Chat",
+//                        tint = ElectricBlue,
+//                        modifier = Modifier.size(20.dp)
+//                    )
+//                    Text(
+//                        text = "New Chat",
+//                        style = MaterialTheme.typography.bodyMedium.copy(
+//                            fontWeight = FontWeight.Medium
+//                        ),
+//                        color = TextPrimary
+//                    )
+//                }
+//            }
         }
 
         // Chat list

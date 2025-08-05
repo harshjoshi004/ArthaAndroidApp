@@ -49,18 +49,6 @@ fun McpNavigation(
             )
         }
         
-        // Keep the old main route for backward compatibility
-//        composable(McpDestinations.MAIN_ROUTE) {
-//            MainScreen(
-//                viewModel = viewModel,
-//                onNavigateToAuth = {
-//                    navController.navigate(McpDestinations.AUTH_ROUTE) {
-//                        popUpTo(McpDestinations.MAIN_ROUTE) { inclusive = true }
-//                    }
-//                }
-//            )
-//        }
-        
         composable(McpDestinations.DASHBOARD_ROUTE) {
             DashboardScreen(
                 viewModel = viewModel,
@@ -123,21 +111,5 @@ fun McpNavigation(
                 onNavigateBack = { navController.popBackStack() }
             )
         }
-        
-//        composable(McpDestinations.ANALYTICS_ROUTE) {
-//            AnalyticsScreen(
-//                viewModel = viewModel,
-//                onNavigateBack = { navController.popBackStack() }
-//            )
-//        }
-        
-//        composable("${McpDestinations.DETAILS_ROUTE}/{section}") { backStackEntry ->
-//            val section = backStackEntry.arguments?.getString("section") ?: ""
-//            DetailsScreen(
-//                viewModel = viewModel,
-//                section = section,
-//                onNavigateBack = { navController.popBackStack() }
-//            )
-//        }
     }
 }

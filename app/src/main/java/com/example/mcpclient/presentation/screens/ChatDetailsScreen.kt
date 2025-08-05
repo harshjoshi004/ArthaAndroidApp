@@ -1,4 +1,5 @@
 package com.example.mcpclient.presentation.screens
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -8,6 +9,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -42,8 +44,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -54,7 +54,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -64,10 +63,10 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.mcpclient.data.models.ChatMessage
-import com.example.mcpclient.presentation.viewmodel.McpViewModel
 import com.example.mcpclient.presentation.components.AgentRoadmapAnimation
+import com.example.mcpclient.presentation.viewmodel.McpViewModel
 import com.example.mcpclient.ui.theme.DarkBackground
-import com.example.mcpclient.ui.theme.DarkBorder
+import com.example.mcpclient.ui.theme.DarkCard
 import com.example.mcpclient.ui.theme.DarkSurface
 import com.example.mcpclient.ui.theme.ElectricBlue
 import com.example.mcpclient.ui.theme.NeonGreen
@@ -141,7 +140,7 @@ fun ChatDetailsScreen(
                     onAnimationComplete = {
                         showAgentAnimation = false
                     },
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize().animateContentSize()
                 )
             }
         }
@@ -297,20 +296,22 @@ private fun ChatMessagesList(
         modifier = modifier
             .fillMaxSize()
             .animateContentSize()
-            .background(brush = Brush.verticalGradient(
-                colors = listOf(
-                    DarkBackground,
-                    Color(0x4000FF88),
-                    DarkBackground
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        DarkBackground,
+                        Color(0x4000FF88),
+                        DarkBackground
+                    )
                 )
-            )),
+            ),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Process messages to show user and AI messages separately
         val processedMessages = messages.filter { !it.isPseudo }
         val hasThinkingOnlyMessage = processedMessages.any { it.isThinkingOnly }
-        
+
         items(processedMessages) { message ->
             AnimatedVisibility(
                 visible = true,
@@ -340,7 +341,7 @@ private fun ChatMessagesList(
                                 timestamp = message.timestamps
                             )
                         }
-                        
+
                         // Show AI response if available
                         if (message.llm_response.isNotEmpty()) {
                             AIMessageBubble(
@@ -433,52 +434,38 @@ private fun ThinkingBubble(
     thinking: String,
     timestamp: Long
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Start
+    var expanded by remember { mutableStateOf(false) }
+
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = Color.Transparent,
+        ),
+        shape = RoundedCornerShape(
+            16.dp
+        ),
+        border = BorderStroke(1.dp, NeonGreen),// NeonGreen
+        onClick = { expanded = !expanded },
+        modifier = Modifier.animateContentSize()
     ) {
-        Icon(
-            imageVector = Icons.Default.AccountCircle,
-            contentDescription = null,
-            tint = NeonGreen,
-            modifier = Modifier
-                .size(32.dp)
-                .padding(top = 4.dp)
+        Text(
+            text = "🧠 Thinking:",
+            modifier = Modifier.padding(16.dp),
+            style = MaterialTheme.typography.headlineMedium,
+            color = NeonGreen
         )
-
-        Spacer(modifier = Modifier.width(8.dp))
-
-        Column(
-            horizontalAlignment = Alignment.Start,
-            modifier = Modifier.fillMaxWidth(0.9f)
-        ) {
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = DarkSurface
+        if (expanded) {
+            MarkdownText(
+                markdown = thinking,
+                modifier = Modifier.padding(16.dp),
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    color = NeonGreen
                 ),
-                shape = RoundedCornerShape(
-                    topStart = 4.dp,
-                    topEnd = 16.dp,
-                    bottomStart = 16.dp,
-                    bottomEnd = 16.dp
-                ),
-                modifier = Modifier.shadow(4.dp)
-            ) {
-                Text(
-                    text = "🧠 Thinking: $thinking",
-                    modifier = Modifier.padding(16.dp),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = TextSecondary
-                )
-            }
-
-            Text(
-                text = formatTimestamp(timestamp),
-                style = MaterialTheme.typography.bodySmall,
-                color = TextSecondary,
-                modifier = Modifier.padding(top = 4.dp, start = 8.dp)
+                linkColor = NeonGreen,
+                syntaxHighlightColor = NeonGreen,
+                syntaxHighlightTextColor = DarkCard
             )
         }
+
     }
 }
 
@@ -523,7 +510,10 @@ private fun AIMessageBubble(
                 MarkdownText(
                     markdown = message,
                     modifier = Modifier.padding(16.dp),
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.bodyMedium,
+                    linkColor = NeonGreen,
+                    syntaxHighlightColor = NeonGreen,
+                    syntaxHighlightTextColor = DarkCard
                 )
             }
 

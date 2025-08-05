@@ -5,7 +5,6 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green.svg?style=flat-square)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue.svg?style=flat-square)](https://kotlinlang.org)
 [![Jetpack Compose](https://img.shields.io/badge/UI-Jetpack%20Compose-4285F4.svg?style=flat-square)](https://developer.android.com/jetpack/compose)
-[![Firebase](https://img.shields.io/badge/Backend-Firebase-orange.svg?style=flat-square)](https://firebase.google.com)
 
 *A sophisticated Android application built with Jetpack Compose for multi-agent financial management and analysis*
 

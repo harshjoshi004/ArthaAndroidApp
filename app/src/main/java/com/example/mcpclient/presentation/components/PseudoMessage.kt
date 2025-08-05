@@ -1,8 +1,10 @@
 package com.example.mcpclient.presentation.components
 
-import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.EaseInOutCubic
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -76,16 +78,16 @@ fun AgentRoadmapAnimation(
 ) {
     val agents = remember {
         listOf(
-            Agent("Data Integration Agent", "Unifying your scattered financial life across 18+ sources", "Foundation Tier", 1200L),
-            Agent("Core Financial Advisor", "Translating your life dreams into actionable strategies", "Foundation Tier", 900L),
-            Agent("Trust & Transparency Agent", "Explaining every recommendation with complete transparency", "Foundation Tier", 1100L),
-            Agent("Risk Profiling Agent", "Detecting when you're about to make emotional financial decisions", "Intelligence Tier", 1300L),
-            Agent("Anomaly Detection Agent", "Spotting unusual patterns before they become problems", "Intelligence Tier", 1000L),
-            Agent("Regional Investment Agent", "Knowing Pune real estate outperforms Mumbai rental yield", "Intelligence Tier", 1400L),
-            Agent("Debt Management Agent", "Optimizing loans considering your grandmother's medical needs", "Strategic Tier", 1100L),
-            Agent("Wealth Transfer Agent", "Planning inheritance while you're building wealth", "Strategic Tier", 1200L),
-            Agent("Cultural Events Agent", "Budgeting for Diwali, weddings, and family obligations", "Strategic Tier", 950L),
-            Agent("Illiquid Asset Agent", "Turning your dormant gold into working capital", "Strategic Tier", 1150L)
+            Agent("Data Integration Agent", "Unifying your scattered financial life across 18+ sources", "Foundation Tier", 800L),
+            Agent("Core Financial Advisor", "Translating your life dreams into actionable strategies", "Foundation Tier", 700L),
+            Agent("Trust & Transparency Agent", "Explaining every recommendation with complete transparency", "Foundation Tier", 750L),
+            Agent("Risk Profiling Agent", "Detecting when you're about to make emotional financial decisions", "Intelligence Tier", 850L),
+            Agent("Anomaly Detection Agent", "Spotting unusual patterns before they become problems", "Intelligence Tier", 700L),
+            Agent("Regional Investment Agent", "Knowing Pune real estate outperforms Mumbai rental yield", "Intelligence Tier", 900L),
+            Agent("Debt Management Agent", "Optimizing loans considering your grandmother's medical needs", "Strategic Tier", 750L),
+            Agent("Wealth Transfer Agent", "Planning inheritance while you're building wealth", "Strategic Tier", 800L),
+            Agent("Cultural Events Agent", "Budgeting for Diwali, weddings, and family obligations", "Strategic Tier", 650L),
+            Agent("Illiquid Asset Agent", "Turning your dormant gold into working capital", "Strategic Tier", 800L)
         )
     }
 
@@ -102,12 +104,12 @@ fun AgentRoadmapAnimation(
     var animationProgress by remember { mutableStateOf(0f) }
     var isAnimationRunning by remember { mutableStateOf(false) }
 
-    // Animation progress for the flowing beam
+    // Animation progress for the flowing beam - smoother and faster
     val beamProgress by animateFloatAsState(
         targetValue = if (isAnimationRunning) 1f else 0f,
         animationSpec = tween(
-            durationMillis = 12000,
-            easing = LinearEasing
+            durationMillis = 8000, // Reduced from 12000 for faster animation
+            easing = EaseInOutCubic // Smoother easing instead of linear
         ),
         finishedListener = {
             if (it == 1f) {
@@ -293,26 +295,29 @@ private fun AgentRoadmapCanvas(
                 strokeWidth = 2.dp.toPx()
             )
 
-            // Flowing beam effect
+            // Flowing beam effect - optimized calculation
             if (beamProgress > 0f) {
                 val segmentProgress = ((beamProgress * agents.size) - i).coerceIn(0f, 1f)
                 if (segmentProgress > 0f) {
-                    val beamStart = startY + (endY - startY) * maxOf(0f, segmentProgress - 0.3f)
+                    val beamLength = 0.4f // Shorter beam for smoother effect
+                    val beamStart = startY + (endY - startY) * maxOf(0f, segmentProgress - beamLength)
                     val beamEnd = startY + (endY - startY) * segmentProgress
 
                     if (beamEnd > beamStart) {
+                        // Smoother gradient with better alpha transitions
                         drawLine(
                             brush = Brush.verticalGradient(
                                 colors = listOf(
-                                    neonGreen.copy(alpha = 0.3f),
+                                    Color.Transparent,
+                                    neonGreen.copy(alpha = 0.6f),
+                                    electricBlue.copy(alpha = 0.9f),
                                     neonGreen,
-                                    electricBlue,
-                                    neonGreen.copy(alpha = 0.3f)
+                                    Color.Transparent
                                 )
                             ),
                             start = Offset(centerX, beamStart),
                             end = Offset(centerX, beamEnd),
-                            strokeWidth = 6.dp.toPx(),
+                            strokeWidth = 4.dp.toPx(), // Slightly thinner for smoother look
                             cap = StrokeCap.Round
                         )
                     }
